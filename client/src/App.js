@@ -28,12 +28,18 @@ import Routes from './pages/Routes';
 import PatientContextProvider from './context/patient/PatientContext';
 import AlertContextProvider from './context/alert/AlertContext';
 
-// Blockchain
+//* Blockchain
 import getWeb3 from "./utils/getWeb3.js";
-
 import MedChainContract from "./contracts/med_chain.json";
 
+var contract_instance = {
+  storageValue: 0,
+  web3: null,
+  accounts: null,
+  contract: null
+}
 
+//* Blockchain Functions
 async function getBlock() {
   try {
 
@@ -57,7 +63,8 @@ async function getBlock() {
     data.accounts = accounts;
     data.web3 = web3;
     data.contract = instance;
-    return data;
+    return (data)
+    console.log(contract_instance)
   } catch (error) {
     alert(
       `Failed to load web3, accounts, or contract. Check console for details.`,
@@ -66,18 +73,73 @@ async function getBlock() {
   }
 };
 
-async function example(data) {
-  console.log(data.accounts);
-  console.log(data.accounts[0]);
-  data.contract.address = data.accounts[0];
-  await data.contract.methods.add_paitent(19, 20, "Krishna", "7/11/1998", 40, "Male", "None").send({
-    from: data.accounts[0]
+async function add_paitent(aadhaar, age, name, dob, weight, sex, allergies) {
+  await contract_instance.contract.methods.add_paitent(aadhaar, age, name, dob, weight, sex, allergies).send({
+    from: contract_instance.accounts[0]
   });
-  const response = await data.contract.methods.lookup_paitent(19).call();
-  console.log(response);
+  console.log("Sent add_paitent to contract");
+}
+
+async function add_prescription(d_id, aadhaar, disease, symptoms, medicine, time) {
+  await contract_instance.contract.methods.add_prescription(d_id, aadhaar, disease, symptoms, medicine, time).send({
+    from: contract_instance.accounts[0]
+  });
+  console.log("Sent add_prescription to contract");
+}
+
+async function lookup_paitent(aadhaar) {
+  var paitent_page_data = {};
+
+  await contract_instance.contract.methods.lookup_paitent(aadhaar).call().then(function (res) {
+    paitent_page_data.aadhaar = res[0];
+    paitent_page_data.age = res[1];
+    paitent_page_data.name = res[2];
+    paitent_page_data.sex = res[3];
+    paitent_page_data.dob = res[4];
+    paitent_page_data.weight = res[5];
+    paitent_page_data.allergies = res[6];
+
+  });
+
+  await contract_instance.contract.methods.doctor_last_prescription(aadhaar).call().then(function (res) {
+    paitent_page_data.last_pres_id = res[0];
+    paitent_page_data.last_pres_medicine = res[1];
+    paitent_page_data.last_pres_doc_id = res[2];
+    paitent_page_data.last_pres_symptoms = res[3];
+    paitent_page_data.last_pres_timestamp = res[4];
+  });
+
+  return (paitent_page_data)
+}
+
+async function medical_history(aadhaar) {
+
+  function get_string(str) {
+    var newStr = str.split("-");
+    newStr.splice(0, 2);
+    return newStr;
+  }
+
+  var medical_hist = {};
+
+  await contract_instance.contract.methods.medical_history_details(aadhaar).call().then(function (res) {
+    medical_hist.pres_ids = get_string(res[0]).map(Number);
+    medical_hist.doctor_ids = get_string(res[1]).map(Number);
+    medical_hist.symptoms = get_string(res[2]);
+
+  });
+
+  await contract_instance.contract.methods.medical_history(aadhaar).call().then(function (res) {
+    medical_hist.disease = get_string(res[0]);
+    medical_hist.medicine = get_string(res[1]);
+    medical_hist.timestamp = get_string(res[2]);
+  });
+
+  return (medical_hist)
 }
 
 
+//* App
 function App() {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -101,48 +163,24 @@ function App() {
   useEffect(() => {
 
     getBlock().then(function (data) {
-      example(data);
-    });
+      contract_instance = data;
 
-    const removeAuthStateChangedObserver = auth.onAuthStateChanged(user => {
-      //* if there is no user...
-      if (!user) {
-        setUser(null);
-        setUserData(null);
-        setSignedIn(false);
-        setReady(true);
-        return;
-      }
+      console.log("Inside use effects");
+      console.log(contract_instance);
 
-      const {
-        uid
-      } = user;
+      //add_prescription(10,19,"drunk", "puking", "ass", "3AM");
 
-      //* if there is no uid...
-      if (!uid) {
-        setUser(null);
-        setUserData(null);
-        setSignedIn(false);
-        setReady(true);
-        return;
-      }
+      // lookup_paitent(19).then(function (data) {
+      //   console.log(data);
+      // });
 
-      const reference = firestore.collection('users').doc(uid);
+      medical_history(19).then(function (data) {
+        console.log(data);
+      })
 
-      //* if there is no reference...
-      if (!reference) {
-        setUser(null);
-        setUserData(null);
-        setSignedIn(false);
-        setReady(true);
-        return;
-      }
-
-      const removeReferenceListener = reference.onSnapshot(snapshot => {
-        if (!snapshot.exists) {
-          if (removeReferenceListener) {
-            removeReferenceListener();
-          }
+      const removeAuthStateChangedObserver = auth.onAuthStateChanged(user => {
+        //* if there is no user...
+        if (!user) {
           setUser(null);
           setUserData(null);
           setSignedIn(false);
@@ -150,13 +188,12 @@ function App() {
           return;
         }
 
-        const data = snapshot.data();
+        const {
+          uid
+        } = user;
 
-        if (!data) {
-          if (removeReferenceListener) {
-            removeReferenceListener();
-          }
-
+        //* if there is no uid...
+        if (!uid) {
           setUser(null);
           setUserData(null);
           setSignedIn(false);
@@ -164,18 +201,58 @@ function App() {
           return;
         }
 
-        setUser(user);
-        setUserData(data);
-        setSignedIn(true);
-        setReady(true);
+        const reference = firestore.collection('users').doc(uid);
+
+        //* if there is no reference...
+        if (!reference) {
+          setUser(null);
+          setUserData(null);
+          setSignedIn(false);
+          setReady(true);
+          return;
+        }
+
+        const removeReferenceListener = reference.onSnapshot(snapshot => {
+          if (!snapshot.exists) {
+            if (removeReferenceListener) {
+              removeReferenceListener();
+            }
+            setUser(null);
+            setUserData(null);
+            setSignedIn(false);
+            setReady(true);
+            return;
+          }
+
+          const data = snapshot.data();
+
+          if (!data) {
+            if (removeReferenceListener) {
+              removeReferenceListener();
+            }
+
+            setUser(null);
+            setUserData(null);
+            setSignedIn(false);
+            setReady(true);
+            return;
+          }
+
+          setUser(user);
+          setUserData(data);
+          setSignedIn(true);
+          setReady(true);
+        });
       });
-    });
 
-    return () => {
-      if (removeAuthStateChangedObserver) {
-        removeAuthStateChangedObserver();
-      }
-    };
+
+      return () => {
+        if (removeAuthStateChangedObserver) {
+          removeAuthStateChangedObserver();
+        }
+      };
+
+    });
   }, []);
 
   const openSnackbar = (message, autoHideDuration = 2) => {
@@ -358,12 +435,11 @@ function App() {
             open: false
           })
         }
-        /> <
-        />
+        /> < / >
       )
     } <
-    /ThemeProvider> <
-    /AlertContextProvider> <
+    /ThemeProvider> < /
+    AlertContextProvider > <
     /PatientContextProvider>
   );
 }
