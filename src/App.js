@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect
+} from 'react';
 
 import readingTime from 'reading-time';
 
 //* MUI
 import Snackbar from '@material-ui/core/Snackbar';
-import { ThemeProvider } from '@material-ui/core/styles';
+import {
+  ThemeProvider
+} from '@material-ui/core/styles';
 import theme from './utils/theme';
-import { auth, firestore } from './firebase';
+import {
+  auth,
+  firestore
+} from './firebase';
 
 //* Components
 import Navbar from './components/Navbar';
@@ -26,26 +34,18 @@ import getWeb3 from "./utils/getWeb3.js";
 import MedChainContract from "./contracts/med_chain.json";
 
 
-
-
-
 async function getBlock() {
   try {
 
     var data = {
       storageValue: 0,
-      web3: null, 
-      accounts: null, 
-      contract: null 
+      web3: null,
+      accounts: null,
+      contract: null
     }
-    // Get network provider and web3 instance.
     console.log("its going");
     const web3 = await getWeb3();
-
-    // Use web3 to get the user's accounts.
     const accounts = await web3.eth.getAccounts();
-
-    // Get the contract instance.
     const networkId = await web3.eth.net.getId();
     const deployedNetwork = MedChainContract.networks[networkId];
     const instance = new web3.eth.Contract(
@@ -54,21 +54,11 @@ async function getBlock() {
     );
 
     const cont = instance;
-
-    // Set web3, accounts, and contract to the state, and then proceed with an
-    // example of interacting with the contract's methods.
-    //this.setState({ web3, accounts, contract: instance }, this.runExample);
     data.accounts = accounts;
     data.web3 = web3;
     data.contract = instance;
-    console.log(data.contract.methods);
-    console.log(data.accounts);
-    console.log(cont);
-
     return data;
-    
   } catch (error) {
-    // Catch any errors for any of the above operations.
     alert(
       `Failed to load web3, accounts, or contract. Check console for details.`,
     );
@@ -77,17 +67,14 @@ async function getBlock() {
 };
 
 async function example(data) {
-  // Stores a given value, 5 by default.
   console.log(data.accounts);
   console.log(data.accounts[0]);
   data.contract.address = data.accounts[0];
-  await data.contract.methods.add_paitent(19, 20, "Krishna", "7/11/1998", 40, "Male", "None").send({ from: data.accounts[0] });
-
-  // Get the value from the contract to prove it worked.
+  await data.contract.methods.add_paitent(19, 20, "Krishna", "7/11/1998", 40, "Male", "None").send({
+    from: data.accounts[0]
+  });
   const response = await data.contract.methods.lookup_paitent(19).call();
   console.log(response);
-  // Update state with the result.
-
 }
 
 
@@ -113,11 +100,10 @@ function App() {
 
   useEffect(() => {
 
-    getBlock().then(function(data){
+    getBlock().then(function (data) {
       example(data);
-    }
-    );
-    
+    });
+
     const removeAuthStateChangedObserver = auth.onAuthStateChanged(user => {
       //* if there is no user...
       if (!user) {
@@ -128,7 +114,9 @@ function App() {
         return;
       }
 
-      const { uid } = user;
+      const {
+        uid
+      } = user;
 
       //* if there is no uid...
       if (!uid) {
@@ -198,119 +186,185 @@ function App() {
     });
   };
 
-  return (
-    <PatientContextProvider>
-      <AlertContextProvider>
-        <ThemeProvider theme={theme}>
-          {!ready && <Loading />}
-          {ready && (
-            <>
-              <Navbar
-                signedIn={signedIn}
-                performingAction={performingAction}
-                user={user}
-                userData={userData}
-                onSignUpClick={() =>
-                  setDialog({ ...dialog, signUpDialog: true })
-                }
-                onSignInClick={() =>
-                  setDialog({ ...dialog, signInDialog: true })
-                }
-                onSettingsClick={() =>
-                  setDialog({ ...dialog, settingsDialog: true })
-                }
-                onSignOutClick={() =>
-                  setDialog({ ...dialog, signOutDialog: true })
-                }
-              />
+  return ( <
+    PatientContextProvider >
+    <
+    AlertContextProvider >
+    <
+    ThemeProvider theme = {
+      theme
+    } > {
+      !ready && < Loading / >
+    } {
+      ready && ( <
+        >
+        <
+        Navbar signedIn = {
+          signedIn
+        }
+        performingAction = {
+          performingAction
+        }
+        user = {
+          user
+        }
+        userData = {
+          userData
+        }
+        onSignUpClick = {
+          () =>
+          setDialog({
+            ...dialog,
+            signUpDialog: true
+          })
+        }
+        onSignInClick = {
+          () =>
+          setDialog({
+            ...dialog,
+            signInDialog: true
+          })
+        }
+        onSettingsClick = {
+          () =>
+          setDialog({
+            ...dialog,
+            settingsDialog: true
+          })
+        }
+        onSignOutClick = {
+          () =>
+          setDialog({
+            ...dialog,
+            signOutDialog: true
+          })
+        }
+        />
 
-              <Routes signedIn={signedIn} />
+        <
+        Routes signedIn = {
+          signedIn
+        }
+        />
 
-              <DialogHost
-                signedIn={signedIn}
-                dialogs={{
-                  signUpDialog: {
-                    dialogProps: {
-                      open: dialog.signUpDialog,
-                      onClose: () =>
-                        setDialog({ ...dialog, signUpDialog: false }),
-                    },
+        <
+        DialogHost signedIn = {
+          signedIn
+        }
+        dialogs = {
+          {
+            signUpDialog: {
+              dialogProps: {
+                open: dialog.signUpDialog,
+                onClose: () =>
+                  setDialog({
+                    ...dialog,
+                    signUpDialog: false
+                  }),
+              },
 
-                    props: {
-                      performingAction,
-                      openSnackbar: message => openSnackbar(message),
-                    },
-                  },
+              props: {
+                performingAction,
+                openSnackbar: message => openSnackbar(message),
+              },
+            },
 
-                  signInDialog: {
-                    dialogProps: {
-                      open: dialog.signInDialog,
-                      onClose: () =>
-                        setDialog({ ...dialog, signInDialog: false }),
-                    },
+            signInDialog: {
+              dialogProps: {
+                open: dialog.signInDialog,
+                onClose: () =>
+                  setDialog({
+                    ...dialog,
+                    signInDialog: false
+                  }),
+              },
 
-                    props: {
-                      performingAction,
-                      openSnackbar: message => openSnackbar(message),
-                    },
-                  },
+              props: {
+                performingAction,
+                openSnackbar: message => openSnackbar(message),
+              },
+            },
 
-                  settingsDialog: {
-                    dialogProps: {
-                      open: dialog.settingsDialog,
-                      onClose: () =>
-                        setDialog({ ...dialog, settingsDialog: false }),
-                    },
+            settingsDialog: {
+              dialogProps: {
+                open: dialog.settingsDialog,
+                onClose: () =>
+                  setDialog({
+                    ...dialog,
+                    settingsDialog: false
+                  }),
+              },
 
-                    props: {
-                      user,
-                  userData: userData, // eslint-disable-line
-                      theme,
-                      openSnackbar: message => openSnackbar(message),
-                      onDeleteAccountClick: () =>
-                        setDialog({ ...dialog, deleteAccountDialog: false }),
-                    },
-                  },
+              props: {
+                user,
+                userData: userData, // eslint-disable-line
+                theme,
+                openSnackbar: message => openSnackbar(message),
+                onDeleteAccountClick: () =>
+                  setDialog({
+                    ...dialog,
+                    deleteAccountDialog: false
+                  }),
+              },
+            },
 
-                  deleteAccountDialog: {
-                    dialogProps: {
-                      open: dialog.deleteAccountDialog,
-                      onClose: () =>
-                        setDialog({ ...dialog, deleteAccountDialog: false }),
-                    },
+            deleteAccountDialog: {
+              dialogProps: {
+                open: dialog.deleteAccountDialog,
+                onClose: () =>
+                  setDialog({
+                    ...dialog,
+                    deleteAccountDialog: false
+                  }),
+              },
 
-                    props: {
-                      performingAction,
-                  userData: userData, // eslint-disable-line
-                      openSnackbar: message => openSnackbar(message),
-                    },
-                  },
+              props: {
+                performingAction,
+                userData: userData, // eslint-disable-line
+                openSnackbar: message => openSnackbar(message),
+              },
+            },
 
-                  signOutDialog: {
-                    dialogProps: {
-                      open: dialog.signOutDialog,
-                      onClose: () =>
-                        setDialog({ ...dialog, signOutDialog: false }),
-                    },
+            signOutDialog: {
+              dialogProps: {
+                open: dialog.signOutDialog,
+                onClose: () =>
+                  setDialog({
+                    ...dialog,
+                    signOutDialog: false
+                  }),
+              },
 
-                    props: {
-                      performingAction,
-                    },
-                  },
-                }}
-              />
+              props: {
+                performingAction,
+              },
+            },
+          }
+        }
+        />
 
-              <Snackbar
-                open={snackbar.open}
-                autoHideDuration={snackbar.autoHideDuration}
-                message={snackbar.message}
-                onClose={() => setSnackbar({ open: false })}
-              />
-            </>
-          )}
-        </ThemeProvider>
-      </AlertContextProvider>
-    </PatientContextProvider>
+        <
+        Snackbar open = {
+          snackbar.open
+        }
+        autoHideDuration = {
+          snackbar.autoHideDuration
+        }
+        message = {
+          snackbar.message
+        }
+        onClose = {
+          () => setSnackbar({
+            open: false
+          })
+        }
+        /> <
+        />
+      )
+    } <
+    /ThemeProvider> <
+    /AlertContextProvider> <
+    /PatientContextProvider>
   );
 }
 
