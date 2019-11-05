@@ -174,9 +174,9 @@ function App() {
       //   console.log(data);
       // });
 
-      medical_history(19).then(function (data) {
-        console.log(data);
-      })
+      //medical_history(19).then(function (data) {
+       // console.log(data);
+      //})
 
       const removeAuthStateChangedObserver = auth.onAuthStateChanged(user => {
         //* if there is no user...
